@@ -137,7 +137,7 @@ class ChatTemplateRenderer:
     def _render(self, tokenizer, prompt: str, answer: str | None, add_generation_prompt: bool) -> str:
         messages = [{"role": "user", "content": prompt}]
         if answer is not None:
-            messages.append({"role": "assistant", "content": answer})
+            messages.append({"role": "assistant", "content": str(answer)})
         try:
             return tokenizer.apply_chat_template(
                 messages,
@@ -220,18 +220,17 @@ class NemotronFactory:
 
     def load_trainable_model(self, model_path: str):
         from transformers import AutoModelForCausalLM
+        import torch
 
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
             trust_remote_code=True,
             torch_dtype=self.selected_dtype(),
-            device_map=self._runtime_policy.select_device_map(),
+            device_map=None,
         )
-        import torch
-
         self._runtime_patcher.apply()
         if torch.cuda.is_available():
-            model.gradient_checkpointing_enable()
+            model = model.cuda()
         return model
 
     def load_inference_model(self, model_path: str, adapter_dir: str | Path):
@@ -361,7 +360,7 @@ class BaselineTrainingPipeline:
             dataset_text_field="text",
             max_length=config.max_seq_len,
             packing=False,
-            gradient_checkpointing=torch.cuda.is_available(),
+            gradient_checkpointing=True,
             gradient_checkpointing_kwargs={"use_reentrant": False},
             max_steps=config.max_steps,
         )

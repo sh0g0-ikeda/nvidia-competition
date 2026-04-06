@@ -20,7 +20,9 @@ from baseline_services import (
 
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
-DEFAULT_MODEL_REF = "metric/nemotron-3-nano-30b-a3b-bf16/transformers/default"
+# RunPodでは HuggingFace のモデルIDを直接指定する
+# Kaggle環境では "metric/nemotron-3-nano-30b-a3b-bf16/transformers/default" を使う
+DEFAULT_MODEL_REF = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
 
 
 def parse_args() -> TrainConfig:
@@ -28,17 +30,17 @@ def parse_args() -> TrainConfig:
     parser.add_argument("--train-csv", default="train.csv")
     parser.add_argument("--run-dir", default="runs/baseline_v1")
     parser.add_argument("--model-ref", default=DEFAULT_MODEL_REF)
-    parser.add_argument("--valid-size", type=float, default=0.1)
+    parser.add_argument("--valid-size", type=float, default=0.0)  # 全データを学習に使う
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--subsample-size", type=int, default=0)
-    parser.add_argument("--max-seq-len", type=int, default=1024)
-    parser.add_argument("--num-epochs", type=float, default=2.0)
-    parser.add_argument("--learning-rate", type=float, default=1e-4)
+    parser.add_argument("--max-seq-len", type=int, default=2048)  # コンペは8192だが学習時はVRAM節約
+    parser.add_argument("--num-epochs", type=float, default=1.0)  # 過学習防止のため1エポック
+    parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--batch-size", type=int, default=1)
-    parser.add_argument("--grad-accum", type=int, default=4)
-    parser.add_argument("--warmup-ratio", type=float, default=0.1)
+    parser.add_argument("--grad-accum", type=int, default=8)  # 実効バッチサイズ=8
+    parser.add_argument("--warmup-ratio", type=float, default=0.05)
     parser.add_argument("--lora-rank", type=int, default=32)
-    parser.add_argument("--lora-alpha", type=int, default=32)
+    parser.add_argument("--lora-alpha", type=int, default=64)  # alpha=2*rankが安定
     parser.add_argument("--lora-dropout", type=float, default=0.05)
     parser.add_argument("--max-steps", type=int, default=-1)
     args = parser.parse_args()
